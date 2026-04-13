@@ -1,0 +1,8 @@
+{
+  "color": [
+    { "name": "start_window_background", "value": "#FFFFFF" },
+    { "name": "item_title_font", "value": "#E6000000" },
+    { "name": "weather_text_primary", "value": "#FFFFFF" },
+    { "name": "weather_text_secondary", "value": "#BFD9F2" }
+  ]
+}

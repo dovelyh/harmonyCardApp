@@ -1,0 +1,9 @@
+{
+  "float": [
+    { "name": "page_text_font_size", "value": "20fp" },
+    { "name": "font_size", "value": "14fp" },
+    { "name": "temp_hero", "value": "88fp" },
+    { "name": "temp_large", "value": "52fp" },
+    { "name": "temp_medium", "value": "32fp" }
+  ]
+}
