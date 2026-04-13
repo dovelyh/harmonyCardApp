@@ -1,25 +1,49 @@
+/**
+ * WeatherData.ets — 全局唯一数据层
+ *
+ * 设计原则：所有数据定义和 Mock 函数集中在这一个文件，
+ * FormAbility、服务卡片、主界面三者都从这里 import，避免重复定义。
+ *
+ * ArkTS 与 TypeScript 的关键区别：
+ * ArkTS 是华为基于 TypeScript 定制的强类型语言，运行在方舟引擎（ArkCompiler）上。
+ * 它在 TS 之上增加了静态类型检查、装饰器限制、禁止 any 等约束，以提升运行时性能和安全性。
+ * 因此许多 TS 写法在 ArkTS 中不合法，例如：
+ *   - 不能用 interface 字面量直接赋值（必须用 class 或 interface 显式声明类型）
+ *   - 不能用 any 类型
+ *   - 对象字面量必须有已知类型
+ */
+
+/**
+ * WeatherNow — 当前天气数据结构
+ * 使用 interface 而非 class：
+ *   - interface 是纯类型描述，不生成运行时代码，编译后会被擦除
+ *   - class 会生成运行时对象，适合需要实例化、方法调用的场景
+ *   - 这里只做数据传输，用 interface 即可
+ */
 export interface WeatherNow {
   city: string;
   temp: number;
   condition: string;
-  conditionCode: number;
+  conditionCode: number;   // 天气状况码，100=晴，101-103=多云，104=阴，300+=雨，400+=雪
   high: number;
   low: number;
   humidity: number;
   windDir: string;
   windScale: number;
   airQuality: string;
-  airIndex: number;
+  airIndex: number;        // AQI 空气质量指数
   uvIndex: number;
   feelsLike: number;
 }
 
+/** 逐小时预报数据项 */
 export interface HourlyItem {
   hour: string;
   temp: number;
   conditionCode: number;
 }
 
+/** 单天预报数据项 */
 export interface DailyItem {
   date: string;
   high: number;
@@ -28,12 +52,27 @@ export interface DailyItem {
   condition: string;
 }
 
+/**
+ * WeatherBundle — 完整天气数据包
+ * 将三层数据聚合成一个对象，方便 getMockWeather() 一次性返回所有数据。
+ */
 export interface WeatherBundle {
   now: WeatherNow;
   hourly: HourlyItem[];
   daily: DailyItem[];
 }
 
+/**
+ * getConditionEmoji — 天气状况码 → emoji 映射
+ *
+ * 天气状况码是和风天气等主流气象 API 的通用编码体系：
+ *   100       = 晴天
+ *   101-103   = 多云（晴间多云/多云/阴间多云）
+ *   104       = 阴
+ *   300-399   = 雨（小雨/中雨/大雨等）
+ *   400-499   = 雪
+ * 这里用 emoji 代替图片资源，避免引入外部素材依赖。
+ */
 export function getConditionEmoji(code: number): string {
   if (code === 100) {
     return '☀️';
@@ -53,32 +92,51 @@ export function getConditionEmoji(code: number): string {
   return '🌤️';
 }
 
+/**
+ * getGradientStart / getGradientEnd — 天气状况 → 渐变色
+ *
+ * 卡片和主界面的背景色根据天气动态变化，增强"天气感知"视觉效果。
+ * 这两个函数返回渐变的起始色和结束色，由调用方传给 ArkUI 的 .linearGradient() 修饰符。
+ *
+ * 为什么用两个函数而不是返回数组？
+ * ArkTS 严格模式下数组字面量类型推断有时不稳定，拆成两个函数更安全直接。
+ */
 export function getGradientStart(code: number): string {
   if (code === 100) {
-    return '#1A6DB5';
+    return '#1A6DB5';        // 晴天：深蓝
   }
   if (code >= 101 && code <= 104) {
-    return '#445566';
+    return '#445566';        // 多云/阴：蓝灰
   }
   if (code >= 300 && code < 400) {
-    return '#1E3A5F';
+    return '#1E3A5F';        // 雨天：深海蓝
   }
   return '#1A6DB5';
 }
 
 export function getGradientEnd(code: number): string {
   if (code === 100) {
-    return '#81CCFF';
+    return '#81CCFF';        // 晴天：浅天蓝
   }
   if (code >= 101 && code <= 104) {
-    return '#889AAB';
+    return '#889AAB';        // 多云：银灰
   }
   if (code >= 300 && code < 400) {
-    return '#3D6B9E';
+    return '#3D6B9E';        // 雨天：中蓝
   }
   return '#81CCFF';
 }
 
+/**
+ * getMockWeather — 返回完整的模拟天气数据
+ *
+ * 为什么用函数而不是导出常量？
+ * 函数每次调用返回新对象，防止调用方意外修改共享引用。
+ * 若未来接入真实 API，只需改这一个函数的实现，所有调用方无需改动。
+ *
+ * conditionCode 遵循和风天气编码标准：
+ *   100 = 晴，101 = 晴间多云，305 = 小雨，307 = 中雨
+ */
 export function getMockWeather(): WeatherBundle {
   return {
     now: {
